@@ -14,7 +14,7 @@ void main() {
             IGenericRepo<Client> generic = new GenericRepo<>(connection, "clients", Client.class);
 //            Client client = new Client();
 //            generic.create(client);
-            var list = generic.list();
+            var list = generic.get("8c5a5e25-9c7a-406e-b107-e36386c173da");
             System.out.println(list);
             connection.close();
             System.out.println("Database connection closed.");

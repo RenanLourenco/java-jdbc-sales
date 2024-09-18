@@ -4,6 +4,7 @@ import br.com.renan.main.annotation.TableName;
 import br.com.renan.main.domain.Persistent;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,9 +15,9 @@ import java.util.List;
 import java.util.UUID;
 
 public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
-    private Connection dbConnection;
-    private String tableName;
-    private Class<T> type;
+    private final Connection dbConnection;
+    private final String tableName;
+    private final Class<T> type;
 
     public GenericRepo(Connection c, String t, Class<T> typeClass){
         dbConnection = c;
@@ -45,7 +46,7 @@ public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
                 quantityValues.add("?");
                 field.setAccessible(true);
                 try {
-                    fieldValues.add(field.get(model)); // Get the actual value of the field from the model instance
+                    fieldValues.add(field.get(model));
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 }
@@ -61,14 +62,11 @@ public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
                 for (int i = 0; i < fieldValues.size(); i++) {
                     Object value = fieldValues.get(i);
 
-                    if (value instanceof String) {
-                        statement.setString(i + 1, (String) value);
-                    } else if (value instanceof Integer) {
-                        statement.setInt(i + 1, (Integer) value);
-                    } else if (value instanceof Long) {
-                        statement.setLong(i + 1, (Long) value);
-                    } else {
-                        statement.setObject(i + 1, value);
+                    switch (value) {
+                        case String s -> statement.setString(i + 1, s);
+                        case Integer integer -> statement.setInt(i + 1, integer);
+                        case Long l -> statement.setLong(i + 1, l);
+                        case null, default -> statement.setObject(i + 1, value);
                     }
 
                 }
@@ -94,6 +92,41 @@ public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
 
     @Override
     public T get(String key) {
+        String query = String.format("SELECT * FROM %s WHERE uuid = '%s'", tableName, key);
+        try (PreparedStatement statement = dbConnection.prepareStatement(query);
+            ResultSet resultSet = statement.executeQuery()
+        ) {
+            T instance = type.getDeclaredConstructor().newInstance();
+            int columnCount = resultSet.getMetaData().getColumnCount();
+
+            while (resultSet.next()){
+                for (int i = 1; i <= columnCount ; i++) {
+                    String columnName = resultSet.getMetaData().getColumnName(i);
+                    Object value = resultSet.getObject(i);
+
+                    Field field = getFieldByName(type, columnName);
+                    if (field != null) {
+                        field.setAccessible(true);
+
+                        // Check if field is of type String and value is UUID
+                        if (field.getType().equals(String.class) && value instanceof UUID) {
+                            // Convert UUID to String before setting it
+                            field.set(instance, value.toString());
+                        } else {
+                            // Set the value normally
+                            field.set(instance, value);
+                        }
+                    }
+                }
+
+
+                return instance;
+            }
+
+
+        } catch (SQLException | ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
         return null;
     }
 
@@ -104,7 +137,6 @@ public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
 
         try (PreparedStatement statement = dbConnection.prepareStatement(query);
              ResultSet resultSet = statement.executeQuery()){
-
 
             int columnCount = resultSet.getMetaData().getColumnCount();
 
@@ -132,6 +164,11 @@ public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
             throw new RuntimeException(e);
         }
         return results;
+    }
+
+    @Override
+    public T update(String key, T model) {
+        return null;
     }
 
 

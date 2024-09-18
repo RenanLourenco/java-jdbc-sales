@@ -9,4 +9,5 @@ public interface IGenericRepo <T extends Persistent> {
     public void delete(String key);
     public T get(String key);
     public Collection<T> list();
+    public T update(String key, T model);
 }
