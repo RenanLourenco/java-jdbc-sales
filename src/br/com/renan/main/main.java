@@ -11,16 +11,11 @@ void main() {
     Connection connection = dbConnection.getConnection();
     try {
         if (connection != null && !connection.isClosed()) {
-            IGenericRepo<Client> generic = new GenericRepo<>(connection);
-            Client client = new Client();
-            client.setName("Renan");
-            client.setCpf("123");
-            client.setName("123");
-            client.setStreet("rua jorge augusto");
-            client.setCity("são paulo");
-            client.setState("SP");
-            client.setNumber(1);
-            generic.create(client);
+            IGenericRepo<Client> generic = new GenericRepo<>(connection, "clients", Client.class);
+//            Client client = new Client();
+//            generic.create(client);
+            var list = generic.list();
+            System.out.println(list);
             connection.close();
             System.out.println("Database connection closed.");
 

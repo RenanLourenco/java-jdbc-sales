@@ -4,6 +4,10 @@ import br.com.renan.main.annotation.TableName;
 
 @TableName("clients")
 public class Client implements Persistent {
+    public Client() {
+    }
+
+
     private String uuid;
     private String cpf;
     private String name;
@@ -12,6 +16,14 @@ public class Client implements Persistent {
     private String city;
     private String state;
     private Integer number;
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
 
     public String getCpf() {
         return cpf;
@@ -67,5 +79,10 @@ public class Client implements Persistent {
 
     public void setNumber(Integer number) {
         this.number = number;
+    }
+
+    @Override
+    public String toString() {
+        return STR."Client{uuid='\{uuid}', cpf='\{cpf}', name='\{name}', tel='\{tel}', street='\{street}', city='\{city}', state='\{state}', number=\{number}}";
     }
 }
