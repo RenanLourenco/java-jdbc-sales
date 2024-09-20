@@ -1,11 +1,9 @@
-package br.com.renan.main.repositories;
+package br.com.renan.main.repositories.generic;
 
 import br.com.renan.main.annotation.TableName;
-import br.com.renan.main.domain.Client;
 import br.com.renan.main.domain.Persistent;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,7 +25,7 @@ public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
     }
 
     @Override
-    public Boolean create(T model) {
+    public T create(T model) {
         Class<?> modelClass = model.getClass();
 
         if(modelClass.isAnnotationPresent(TableName.class)){
@@ -72,10 +70,25 @@ public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
 
                 }
 
-                statement.executeUpdate();
-                return true;
-            } catch (SQLException e) {
-
+                int affectedRows = statement.executeUpdate();
+                if (affectedRows == 0) {
+                    throw new SQLException("Creating record failed, no rows affected.");
+                }
+                try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        for (Field field : modelClass.getDeclaredFields()) {
+                            field.setAccessible(true);
+                            if (field.getName().equals("id")) {
+                                field.set(model, generatedKeys.getLong("id"));
+                            } else if (field.getName().equals("uuid")) {
+                                field.set(model, generatedKeys.getObject("uuid"));
+                            }
+                        }
+                    } else {
+                        throw new SQLException("Creating record failed, no ID obtained.");
+                    }
+                }
+            } catch (SQLException | IllegalAccessException e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
 
@@ -83,12 +96,23 @@ public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
 
         }
 
-        return false;
+        return model;
     }
 
     @Override
-    public void delete(String key) {
+    public Boolean delete(String key) {
+        String query = String.format("DELETE FROM %s WHERE uuid = %s" ,tableName, key);
+        try (PreparedStatement statement = dbConnection.prepareStatement(query)
+        ) {
+            int affectedRows = statement.executeUpdate();
+            if (affectedRows != 0) {
+                return true;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
 
+        return false;
     }
 
     @Override

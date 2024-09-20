@@ -1,7 +1,7 @@
 import br.com.renan.main.domain.Client;
 import br.com.renan.main.infra.Database;
-import br.com.renan.main.repositories.GenericRepo;
-import br.com.renan.main.repositories.IGenericRepo;
+import br.com.renan.main.repositories.generic.GenericRepo;
+import br.com.renan.main.repositories.generic.IGenericRepo;
 
 import java.sql.Connection;
 import java.sql.SQLException;
