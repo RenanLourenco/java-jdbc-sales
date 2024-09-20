@@ -36,6 +36,10 @@
           <source>21</source>
           <target>21</target>
           <compilerArgs>--enable-preview</compilerArgs>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/Test*.java</include>
+          </includes>
         </configuration>
       </plugin>
     </plugins>
