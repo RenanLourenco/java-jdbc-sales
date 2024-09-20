@@ -16,6 +16,10 @@ void main() {
 //            generic.create(client);
             var list = generic.get("8c5a5e25-9c7a-406e-b107-e36386c173da");
             System.out.println(list);
+            Client client = new Client();
+            client.setName("Update");
+            var update = generic.update("8c5a5e25-9c7a-406e-b107-e36386c173da", client);
+            System.out.println(update);
             connection.close();
             System.out.println("Database connection closed.");
 

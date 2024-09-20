@@ -1,6 +1,7 @@
 package br.com.renan.main.repositories;
 
 import br.com.renan.main.annotation.TableName;
+import br.com.renan.main.domain.Client;
 import br.com.renan.main.domain.Persistent;
 
 import java.lang.reflect.Field;
@@ -168,6 +169,62 @@ public class GenericRepo<T extends Persistent> implements IGenericRepo<T>{
 
     @Override
     public T update(String key, T model) {
+        Class<?> modelClass = model.getClass();
+
+        if(modelClass.isAnnotationPresent(TableName.class)){
+            List<String> fieldsToUpdate = new ArrayList<>();
+            List<Object> values = new ArrayList<>();
+
+            for(Field field: modelClass.getDeclaredFields()){
+                if (field.getName().equals("uuid") || field.getName().equals("id")) {
+                    continue;
+                }
+
+                field.setAccessible(true);
+                try {
+                    Object fieldValue = field.get(model);
+
+                    if (fieldValue != null) {
+                        fieldsToUpdate.add(field.getName() + " = ?");
+                        values.add(fieldValue);
+                    }
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+            }
+
+            String updateQuery = String.format(
+                    "UPDATE %s SET %s WHERE uuid = CAST(? AS UUID)",
+                    tableName,
+                    String.join(", ", fieldsToUpdate)
+            );
+
+
+
+
+            try (PreparedStatement statement = dbConnection.prepareStatement(updateQuery)) {
+
+                for (int i = 0; i < values.size(); i++) {
+                    statement.setObject(i + 1, values.get(i));
+                }
+                statement.setString(values.size() + 1, key);
+
+
+                int rowsUpdated = statement.executeUpdate();
+                if(rowsUpdated > 0) {
+                    return this.get(key);
+                } else {
+                    return null;
+                }
+
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        }
+
         return null;
     }
 
